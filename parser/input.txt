@@ -1,0 +1,36 @@
+class ExemploCompleto {
+    // Declaração de variáveis com e sem atribuição
+    int contador = 0;
+    boolean ativo = true;
+    int soma;
+    boolean finalizado;
+
+    // Método void com diferentes estruturas de controle
+    void executar() {
+        // While com incremento
+        while (contador < 10) {
+            contador++;
+        }
+
+        // If com decremento
+        if (ativo == true) {
+            contador--;
+        }
+
+        // For com múltiplas operações
+        for (soma = 0; soma < 5; soma++) {
+            if (soma != 3) {
+                ativo = false;
+            }
+        }
+
+        // Testes de comparação
+        if (contador >= 10) {
+            finalizado = true;
+        }
+
+        if (soma <= 5) {
+            finalizado = false;
+        }
+    }
+} 

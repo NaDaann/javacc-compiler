@@ -1,0 +1,32 @@
+{
+    "files.associations": {
+        "*.jjt": "java",
+    },
+    "[java]": {
+        "editor.codeActionsOnSave": {
+            "source.organizeImports": "never"
+        },
+        "editor.formatOnSave": false
+    },
+    "[jjt]": {
+        "editor.codeActionsOnSave": {
+            "source.organizeImports": "never"
+        },
+        "editor.formatOnSave": false
+    },
+    "java.problems.exclude": {
+        "**/*.jjt": true,
+        "**/*.jj": true
+    },
+    "java.completion.enabled": false,
+    "java.format.enabled": false,
+    "java.validation.enabled": false,
+    "javascript.validate.enable": false,
+    "typescript.validate.enable": false,
+    "java.errors.incompleteClasspath.severity": "ignore",
+    "java.configuration.checkProjectSettingsExclusions": false,
+    "java.project.importOnFirstTimeStartup": "disabled",
+    "files.exclude": {
+        "**/*.jjt": true
+    },
+}

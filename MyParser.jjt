@@ -1,0 +1,212 @@
+/**
+ * Definição de um analisador sintático usando JavaCC com JJTree
+ * 
+ * Este arquivo define uma gramática para uma linguagem de programação orientada a objetos simples
+ * que suporta:
+ * - Declaração de classes
+ * - Métodos void
+ * - Variáveis (int e boolean)
+ * - Estruturas de controle (if, while, for)
+ * - Operadores de comparação e atribuição
+ * 
+ * O arquivo será processado em duas etapas:
+ * 1. JJTree: Gera arquivo .jj e estruturas para criação da AST (Árvore Sintática Abstrata)
+ * 2. JavaCC: Gera as classes Java do analisador a partir do arquivo .jj
+ */
+
+// Configurações do gerador de parser
+options {
+    STATIC = false;      // Métodos do parser serão não-estáticos para permitir múltiplas instâncias
+    MULTI = true;        // Nós da AST podem ter quantidade variável de filhos
+    VISITOR = true;      // Gera interface Visitor para percorrer a AST
+    NODE_DEFAULT_VOID = true;  // Métodos dos nós da AST retornam void por padrão
+    NODE_PACKAGE = "parser";   // Pacote onde as classes dos nós serão geradas
+    JJTREE_OUTPUT_DIRECTORY = "parser";  // Diretório de saída para arquivos gerados
+}
+
+// Início da definição do parser
+PARSER_BEGIN(MyParser)
+package parser;
+
+// Classe principal do parser
+public class MyParser {
+    // Método main para execução standalone do parser
+    public static void main(String args[]) throws ParseException {
+        MyParser parser;
+        
+        // Configuração da entrada: stdin ou arquivo
+        if (args.length == 0) {
+            System.out.println("Reading from standard input...");
+            parser = new MyParser(System.in);
+        } else if (args.length == 1) {
+            try {
+                parser = new MyParser(new java.io.FileInputStream(args[0]));
+            } catch (java.io.FileNotFoundException e) {
+                System.out.println("File " + args[0] + " not found.");
+                return;
+            }
+        } else {
+            System.out.println("Usage: java MyParser [input file]");
+            return;
+        }
+
+        // Execução do parser e exibição da AST
+        try {
+            SimpleNode root = parser.Program();
+            root.dump("");  // Imprime a AST em formato texto
+            System.out.println("Parsing completed successfully.");
+        } catch (ParseException e) {
+            System.out.println("Syntax Error: " + e.getMessage());
+        }
+    }
+}
+
+PARSER_END(MyParser)
+
+// Definição de tokens a serem ignorados durante a análise
+SKIP : {
+    " "     // Espaço
+    | "\t"  // Tab
+    | "\n"  // Nova linha
+    | "\r"  // Retorno de carro
+    | <"//" (~["\n","\r"])* ("\n"|"\r"|"\r\n")>  // Comentários de linha única
+    | <"/*" (~["*"])* "*" (~["/"] (~["*"])* "*")* "/">  // Comentários multi-linha
+}
+
+// Definição dos tokens da linguagem
+TOKEN : {
+    // Palavras-chave
+    <CLASS: "class">
+    | <VOID: "void">
+    | <IF: "if">
+    | <WHILE: "while">
+    | <FOR: "for">
+    | <INT: "int">
+    | <BOOLEAN: "boolean">
+    | <TRUE: "true">
+    | <FALSE: "false">
+    
+    // Símbolos e operadores
+    | <LPAREN: "(">
+    | <RPAREN: ")">
+    | <LBRACE: "{">
+    | <RBRACE: "}">
+    | <SEMICOLON: ";">
+    | <EQUALS: "==">
+    | <ASSIGN: "=">
+    | <NOT_EQUALS: "!=">
+    | <LT: "<">
+    | <GT: ">">
+    | <LE: "<=">
+    | <GE: ">=">
+    | <INCREMENT: "++">
+    | <DECREMENT: "--">
+    
+    // Identificadores e literais
+    | <IDENTIFIER: ["a"-"z","A"-"Z"] (["a"-"z","A"-"Z","0"-"9","_"])*>  
+    // Identificadores começam com letra
+    | <INTEGER_LITERAL: (["0"-"9"])+>  // Números inteiros
+}
+
+// Regras da gramática
+
+// Regra inicial do programa - deve ter uma declaração de classe
+SimpleNode Program() #Program : {} {
+    ClassDeclaration() <EOF>
+    { return jjtThis; }
+}
+
+// Declaração de classe - contém variáveis e métodos
+void ClassDeclaration() #Class : {} {
+    <CLASS> <IDENTIFIER> <LBRACE>
+        (VarDeclaration())*  // Zero ou mais declarações de variáveis
+        (MethodDeclaration())*  // Zero ou mais declarações de métodos
+    <RBRACE>
+}
+
+// Declaração de variável com tipo e opcional inicialização
+void VarDeclaration() #VarDecl : {} {
+    Type() <IDENTIFIER> [<ASSIGN> Value()] <SEMICOLON>
+}
+
+// Tipos suportados na linguagem
+void Type() #Type : {} {
+    <INT> | <BOOLEAN>
+}
+
+// Valores literais suportados
+void Value() #Value : {} {
+    <INTEGER_LITERAL> | <TRUE> | <FALSE>
+}
+
+// Declaração de método - apenas métodos void são suportados
+void MethodDeclaration() #Method : {} {
+    <VOID> <IDENTIFIER> <LPAREN> <RPAREN> Block()
+}
+
+// Bloco de código - sequência de statements
+void Block() #Block : {} {
+    <LBRACE>
+        (Statement())*  // Zero ou mais statements
+    <RBRACE>
+}
+
+// Tipos de statements suportados
+void Statement() : {} {
+    IfStatement()
+    | WhileStatement()
+    | ForStatement()
+    | ExpressionStatement()
+    | Block()
+}
+
+// Statement if - controle condicional
+void IfStatement() #If : {} {
+    <IF> <LPAREN> Condition() <RPAREN> Statement()
+}
+
+// Statement while - loop condicional
+void WhileStatement() #While : {} {
+    <WHILE> <LPAREN> Condition() <RPAREN> Statement()
+}
+
+// Statement for - loop com inicialização, condição e incremento
+void ForStatement() #For : {} {
+    <FOR> <LPAREN>
+        [ExpressionStatement()]  // Inicialização opcional
+        Condition() <SEMICOLON>  // Condição de continuação
+        [Expression()]  // Incremento opcional
+    <RPAREN>
+    Statement()
+}
+
+// Condição para statements condicionais
+void Condition() #Condition : {} {
+    ExpressionOrValue() (ComparisonOperator() ExpressionOrValue())?
+}
+
+// Expressão ou valor que pode ser usado em condições
+void ExpressionOrValue() #ExprOrVal : {} {
+    <IDENTIFIER> [<INCREMENT> #Inc | <DECREMENT> #Dec | <ASSIGN> Value() #Assign]
+    | Value()
+}
+
+// Operadores de comparação suportados
+void ComparisonOperator() #Comparison : {} {
+    <EQUALS> | <NOT_EQUALS> | <LT> | <GT> | <LE> | <GE>
+}
+
+// Statement de expressão - termina com ponto e vírgula
+void ExpressionStatement() #Stmt : {} {
+    Expression() <SEMICOLON>
+}
+
+// Expressão - operações com identificadores
+void Expression() #Expr : {} {
+    <IDENTIFIER>
+    [
+        <INCREMENT> #Inc  // Incremento pós-fixado
+        | <DECREMENT> #Dec  // Decremento pós-fixado
+        | <ASSIGN> Value() #Assign  // Atribuição
+    ]
+} 
