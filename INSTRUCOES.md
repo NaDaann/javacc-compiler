@@ -2,7 +2,7 @@
 
 ## Pré-requisitos
 
-1. Java JDK instalado (versão 8 ou superior)
+1. Java JDK instalado (versão 22 ou superior)
 2. JavaCC instalado
 3. Variáveis de ambiente configuradas corretamente
 
